@@ -59,7 +59,7 @@ Terminal operation
 
 Stream<SecurityEvent> stream = events.stream();
 
-// Example A: Find unresolved critical incidents
+// Example A: Find unresolved critical incidents.          
 List<SecurityEvent> criticalOpenIncidents =
     events.stream()                              // source
           .filter(e -> !e.resolved())           // intermediate
@@ -144,27 +144,40 @@ Your file lists the key intermediate operations: filter, distinct, limit, skip, 
 
 Let us apply all of them.
 
-9.1 filter()
 
-Show only unresolved incidents:
+//================================
+  9.1 filter()
+//================================
+// Show only unresolved incidents:
 
 events.stream()
       .filter(e -> !e.resolved())
       .forEach(System.out::println);
 Business meaning
-
 Focus only on active security problems.
 
 // 9.2 distinct()
-Suppose you want unique departments with incidents:
+// Suppose you want unique departments with incidents:
 
 events.stream()
       .map(SecurityEvent::department)
       .distinct()
       .forEach(System.out::println);
 Business meaning
-
 See which departments need security attention.
+
+
+// Set<String> seenDepartments = new LinkedHashSet<>();
+
+// for (SecurityEvent e : events) {
+
+//     String dept = e.department();   // map step
+
+//     if (!seenDepartments.contains(dept)) {  // distinct step
+//         seenDepartments.add(dept);
+//         System.out.println(dept);           // terminal (forEach)
+//     }
+// }
 
 distinct() removes duplicates using equality, exactly as your file states.
 
@@ -177,9 +190,44 @@ events.stream()
       .sorted(Comparator.comparing(SecurityEvent::timestamp).reversed())
       .limit(3)
       .forEach(System.out::println);
-Business meaning
 
+// SecurityEvent[8, Fatima, Pharmacy, DOOR_FORCED, Drug Storage, 10, false, now-2min]
+// SecurityEvent[3, Mohamed, ER, DOOR_FORCED, Pharmacy, 9, false, now-5min]
+// SecurityEvent[1, Adan, ER, PANIC_ALARM, ER Room 4, 10, false, now-10min]
+
+Business meaning
 A supervisor dashboard often shows only the top few urgent alerts.
+
+// // STEP 1: "filter" → keep only high severity
+// List<SecurityEvent> step1 = new ArrayList<>();
+
+// for (SecurityEvent e : events) {
+//     if (e.severity() >= 8) {
+//         step1.add(e);
+//     }
+// }
+
+// // STEP 2: "sorted" → sort by timestamp DESC
+// List<SecurityEvent> step2 = new ArrayList<>(step1);
+
+// step2.sort(
+//     Comparator.comparing(SecurityEvent::timestamp).reversed()
+// );
+
+// // STEP 3: "limit" → take first 3
+// List<SecurityEvent> step3 = new ArrayList<>();
+
+// for (int i = 0; i < step2.size() && i < 3; i++) {
+//     step3.add(step2.get(i));
+// }
+
+// // STEP 4: "forEach" → print
+// for (SecurityEvent e : step3) {
+//     System.out.println(e);
+// }
+
+
+
 
 9.4 skip()
 
@@ -190,19 +238,30 @@ events.stream()
       .skip(5)
       .forEach(System.out::println);
 Business meaning
-
 Pagination.
+// SecurityEvent[7, Hani, ICU, PATIENT_ESCORT, ICU Hall, 4, true, now-25min]
+// SecurityEvent[2, Sara, ICU, BADGE_SCAN, ICU Gate, 2, true, now-30min]
+// SecurityEvent[4, Layla, Lobby, VISITOR_CHECKIN, Main Entrance, 1, true, now-2hours]
+
 
 9.5 map()
-
 Convert full SecurityEvent objects into a display string:
 
 events.stream()
       .map(e -> e.location() + " - " + e.type())
       .forEach(System.out::println);
-Business meaning
 
-Transform raw objects into report lines.
+// ER Room 4 - PANIC_ALARM
+// ICU Gate - BADGE_SCAN
+// Pharmacy - DOOR_FORCED
+// Main Entrance - VISITOR_CHECKIN
+// Psych Ward - SUSPICIOUS_ACTIVITY
+// ER Gate - BADGE_SCAN
+// ICU Hall - PATIENT_ESCORT
+// Drug Storage - DOOR_FORCED
+
+Business meaning
+// Transform raw objects into report lines.
 
 9.6 flatMap()
 
@@ -216,10 +275,22 @@ List<List<String>> supervisors = List.of(
 
 supervisors.stream()
            .flatMap(List::stream)
-           .forEach(System.out::println);
-Business meaning
+           .forEach(System.out::println);// adan sara mohamed layla fatima
 
-Flatten nested collections into one continuous stream.
+// supervisors.stream()
+//            .flatMap(list -> list.stream())
+//            .forEach(name -> System.out.println(name));
+
+
+// imperative version
+// for (List<String> group : supervisors) {
+//     for (String name : group) {
+//         System.out.println(name);
+//     }
+// }
+           
+Business meaning
+// Flatten nested collections into one continuous stream.
 
 This is exactly the real purpose of flatMap().
 
@@ -234,7 +305,12 @@ Stream<SecurityEvent> icuEvents =
     events.stream().filter(e -> e.department().equals("ICU"));
 
 Stream.concat(erEvents, icuEvents)
-      .forEach(System.out::println);
+      .forEach(System.out::println); //results all ER and ICU events together
+      // SecurityEvent[1, Adan, ER, PANIC_ALARM, ER Room 4, 10, false, now-10min]
+      // SecurityEvent[3, Mohamed, ER, DOOR_FORCED, Pharmacy, 9, false, now-5min]
+      // SecurityEvent[6, Asha, ER, BADGE_SCAN, ER Gate, 3, true, now-20min]
+      // SecurityEvent[2, Sara, ICU, BADGE_SCAN, ICU Gate, 2, true, now-30min]
+      // SecurityEvent[7, Hani, ICU, PATIENT_ESCORT, ICU Hall, 4, true, now-25min]
 Business meaning
 
 Merge separate streams into one flow.
@@ -253,10 +329,8 @@ events.stream()
       .sorted(Comparator.comparing(SecurityEvent::severity).reversed())
       .forEach(System.out::println);
 Business meaning
-
-Prioritize critical incidents first.
-
-Your file warns that sorting can use natural order or comparator and also warns about comparator pitfalls.
+// Prioritize critical incidents first.
+// Your file warns that sorting can use natural order or comparator and also warns about comparator pitfalls.
 
 9.9 peek()
 events.stream()
@@ -264,14 +338,12 @@ events.stream()
       .peek(e -> System.out.println("Passing through pipeline: " + e.id()))
       .count();
 Business meaning
-
-Debug pipeline flow.
-
+// Debug pipeline flow.
 Your file says peek() should be used for debugging only and side effects should be avoided. That is important for the exam.
 
 10. Terminal Operations in One Professional Story
 
-Your guide covers major terminal operations like count, min, max, findAny, findFirst, matching methods, forEach, reduce, and collect.
+// Your guide covers major terminal operations like count, min, max, findAny, findFirst, matching methods, forEach, reduce, and collect.
 
 Now let us apply them properly.
 
@@ -282,10 +354,10 @@ Count unresolved incidents:
 long openCount = events.stream()
                        .filter(e -> !e.resolved())
                        .count();
+System.out.println("Open incidents: " + openCount);// Open incidents: 4
 Business meaning
 
-“How many open security issues do we currently have?”
-
+// “How many open security issues do we currently have?”
 count() is terminal and will not terminate for truly infinite streams.
 
 10.2 min() and max()
@@ -295,58 +367,58 @@ Find least severe and most severe incident:
 Optional<SecurityEvent> leastSevere =
     events.stream()
           .min(Comparator.comparing(SecurityEvent::severity));
+          // SecurityEvent[4, Layla, Lobby, VISITOR_CHECKIN, Main Entrance, 1, true, now-2hours]
 
 Optional<SecurityEvent> mostSevere =
     events.stream()
           .max(Comparator.comparing(SecurityEvent::severity));
+          // SecurityEvent[1, Adan, ER, PANIC_ALARM, ER Room 4, 10, false, now-10min]
 Business meaning
-minimum severity = routine event
-maximum severity = crisis-level event
+// minimum severity = routine event
+// maximum severity = crisis-level event
 
-These return Optional, exactly as your file says.
 
 10.3 findFirst()
-
-Find first unresolved alert in encounter order:
+// Find first unresolved alert in encounter order:
 
 Optional<SecurityEvent> firstOpen =
     events.stream()
           .filter(e -> !e.resolved())
-          .findFirst();
+          .findFirst();// SecurityEvent[1, Adan, ER, PANIC_ALARM, ER Room 4, 10, false, now-10min]
 Business meaning
-
 Useful when order matters.
 
 10.4 findAny()
 Optional<SecurityEvent> anyCritical =
     events.stream()
           .filter(e -> e.severity() >= 9)
-          .findAny();
+          .findAny();//may return Adan, Mohamed, or Fatima
+      // Optional[SecurityEvent[1, Adan, ER, PANIC_ALARM, ...]] or
+      // Optional[SecurityEvent[3, Mohamed, ER, DOOR_FORCED, ...]] or
+      // Optional[SecurityEvent[8, Fatima, Pharmacy, DOOR_FORCED, ...]]
 Business meaning
-
 Just find one critical event quickly.
-
 This may be especially useful with parallel streams, where “any” is cheaper than “first”.
 
 10.5 anyMatch(), allMatch(), noneMatch()
 anyMatch()
 boolean hasCritical =
     events.stream()
-          .anyMatch(e -> e.severity() >= 9);
+          .anyMatch(e -> e.severity() >= 9);// true because of Adan and Fatima
 
 Meaning: “Do we have at least one critical incident?”
 
 allMatch()
 boolean allResolved =
     events.stream()
-          .allMatch(SecurityEvent::resolved);
+          .allMatch(SecurityEvent::resolved);// false because of Adan, Mohamed, Khalid, and Fatima are unresolved
 
 Meaning: “Is every event resolved?”
 
 noneMatch()
 boolean noLobbyThreats =
     events.stream()
-          .noneMatch(e -> e.location().contains("Lobby") && e.severity() >= 8);
+          .noneMatch(e -> e.location().contains("Lobby") && e.severity() >= 8);// false because of Layla's visitor check-in in the lobby, but it is low severity
 
 Meaning: “Are there zero serious lobby threats?”
 
@@ -356,23 +428,38 @@ Your guide notes these are boolean matching operations and may or may not termin
 events.stream()
       .filter(e -> e.severity() >= 8)
       .forEach(System.out::println);
+// SecurityEvent[1, Adan, ER, PANIC_ALARM, ER Room 4, 10, false, now-10min]
+// SecurityEvent[3, Mohamed, ER, DOOR_FORCED, Pharmacy, 9, false, now-5min]
+// SecurityEvent[5, Khalid, Psych, SUSPICIOUS_ACTIVITY, Psych Ward, 8, false, now-15min]
+// SecurityEvent[8, Fatima, Pharmacy, DOOR_FORCED, Drug Storage, 10, false, now-2min]     
+
 Business meaning
+// Print emergency dashboard output.
 
-Print emergency dashboard output.
-
-Your file clearly notes forEach() is terminal and that streams do not use the normal for-each loop syntax.
+// Your file clearly notes forEach() is terminal and that streams do not use the normal for-each loop syntax.
 
 10.7 reduce()
 
-Suppose the hospital wants the total severity score of all unresolved incidents:
+// Suppose the hospital wants the total severity score of all unresolved incidents:
 
 int totalSeverity =
     events.stream()
           .filter(e -> !e.resolved())
           .map(SecurityEvent::severity)
-          .reduce(0, Integer::sum);
-Business meaning
+          .reduce(0, Integer::sum);// 10 + 9 + 8 + 10 = 37
 
+int total =
+    events.stream()
+          .map(SecurityEvent::severity)
+          .reduce(0, (a, b) -> Integer.sum(a, b));
+
+int total =
+    events.stream()
+          .map(SecurityEvent::severity)
+          .reduce(0, (a, b) -> a + b);          
+
+
+Business meaning
 Measure overall risk load.
 
 Another example: highest severity using reduction:
@@ -386,28 +473,33 @@ Your file says reduce() combines all elements into one result and supports ident
 
 10.8 collect()
 
-Collect unresolved events into a list:
-
+// Collect unresolved events into a list:
 List<SecurityEvent> unresolved =
     events.stream()
           .filter(e -> !e.resolved())
-          .collect(Collectors.toList());
+          .collect(Collectors.toList());// List of 4 unresolved events
 
-Collect unique departments into a set:
+//  Imperative Equivalent
+List<SecurityEvent> unresolved = new ArrayList<>();
 
+for (SecurityEvent e : events) {
+    if (!e.resolved()) {
+        unresolved.add(e);
+    }
+}         
+
+// Collect unique departments into a set:
 Set<String> departmentsWithIncidents =
     events.stream()
           .map(SecurityEvent::department)
           .collect(Collectors.toSet());
 
-Group events by department:
-
+// Group events by department:
 Map<String, List<SecurityEvent>> byDepartment =
     events.stream()
           .collect(Collectors.groupingBy(SecurityEvent::department));
 
-Count events by type:
-
+// Count events by type:
 Map<EventType, Long> countsByType =
     events.stream()
           .collect(Collectors.groupingBy(SecurityEvent::type, Collectors.counting()));
