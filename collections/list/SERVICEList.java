@@ -223,3 +223,44 @@ class OrderService {
         cart.clear();
     }
 }
+
+
+3. All Major Methods (You covered these)
+✔ Add
+add(E)
+add(index, E)
+addAll()
+addAll(index, c)
+✔ Access
+get()
+✔ Update
+set()
+replaceAll()
+✔ Remove
+remove(index)
+remove(object)
+removeAll()
+retainAll()
+removeIf()
+clear()
+✔ Search
+contains()
+containsAll()
+indexOf()
+lastIndexOf()
+✔ Info
+size()
+isEmpty()
+✔ Iteration
+forEach()
+iterator()
+listIterator()
+✔ Utility
+sort()
+subList()
+toArray()
+✔ Modern
+stream()
+✔ Comparison
+equals()
+hashCode()
