@@ -20,6 +20,9 @@ We design a real zoo platform:
 // zoo.animal.talks     → visitor talks/events
 // zoo.staff            → staff system (main app)
 
+
+
+
 2. MODULE 1 — FEEDING (FOUNDATION)
 // 📄 module-info.java
 module zoo.animal.feeding {
@@ -63,6 +66,11 @@ public class MedicalService {
         feeding.feedAnimal(animal);
     }
 }
+
+
+
+
+
 🔷 4. MODULE 3 — TALKS (ADVANCED MODULE)
 📄 module-info.java
 module zoo.animal.talks {
@@ -83,6 +91,8 @@ module zoo.animal.talks {
     // QUALIFIED REFLECTION
     opens zoo.animal.talks.media to zoo.staff;
 }
+
+
 📄 TalkContent.java (RESTRICTED)
 package zoo.animal.talks.content;
 
@@ -92,6 +102,7 @@ public class TalkContent {
         return "Lion feeding session";
     }
 }
+
 📄 MediaService.java
 package zoo.animal.talks.media;
 
@@ -112,6 +123,8 @@ public class ScheduleService {
         return schedule;
     }
 }
+
+
 🔷 5. MODULE 4 — STAFF (MAIN APPLICATION)
 📄 module-info.java
 module zoo.staff {
@@ -189,27 +202,31 @@ schedule	✅
 content	✅ (restricted allowed)
 non-exported	❌
 🔷 7. COMPILATION (REAL TERMINAL)
-# compile feeding
-javac -d mods/zoo.animal.feeding \
-zoo.animal.feeding/module-info.java \
-zoo.animal.feeding/zoo/animal/feeding/*.java
 
-# compile care
-javac -p mods -d mods/zoo.animal.care \
-zoo.animal.care/module-info.java \
-zoo.animal.care/zoo/animal/care/medical/*.java
+// # compile feeding
+// javac -d mods/zoo.animal.feeding \
+// zoo.animal.feeding/module-info.java \
+// zoo.animal.feeding/zoo/animal/feeding/*.java ..........*/
 
-# compile talks
-javac -p mods -d mods/zoo.animal.talks \
-zoo.animal.talks/module-info.java \
-zoo.animal.talks/zoo/animal/talks/*/*.java
+// # compile care
+// javac -p mods -d mods/zoo.animal.care \
+// zoo.animal.care/module-info.java \
+// zoo.animal.care/zoo/animal/care/medical/*.java ..........*/
 
-# compile staff
-javac -p mods -d mods/zoo.staff \
-zoo.staff/module-info.java \
-zoo.staff/zoo/staff/*.java
+// # compile talks
+// javac -p mods -d mods/zoo.animal.talks \
+// zoo.animal.talks/module-info.java \
+// zoo.animal.talks/zoo/animal/talks/*/*.java ..........*/
+
+// # compile staff
+// javac -p mods -d mods/zoo.staff \
+// zoo.staff/module-info.java \
+// zoo.staff/zoo/staff/*.java    ..........*/
+
+
 🔷 8. RUNNING
-java -p mods -m zoo.staff/zoo.staff.ZooStaffApp
+// java -p mods -m zoo.staff/zoo.staff.ZooStaffApp
+
 🔷 9. OUTPUT (REAL)
 === Zoo Staff System ===
 Playing zoo educational video...
