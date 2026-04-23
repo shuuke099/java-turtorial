@@ -200,6 +200,23 @@ That is the heart of JPMS.
 
 Now let’s compile from scratch.
 
+
+
+14. Important exam meanings of the command parts
+javac
+
+// compile source code
+
+// -d. == destination of compiled .class files
+
+// -p == module path used during compilation or runtime
+
+// java run program:
+
+// -m run a specific module and its main class
+
+// module-info.java: the descriptor that defines module rules
+
 Assume you are inside:
 
 hospital-system/
@@ -214,14 +231,11 @@ Java compiler
 
 -d mods/health.patient
 
-Put compiled output into this folder:
+Put compiled output into this folder: mods/health.patient/
 
-mods/health.patient/
 source files
 
-Compile:
-
-module-info.java
+Compile: module-info.java
 all .java files in com.health.patient
 Output after compiling health.patient
 mods/
@@ -232,27 +246,27 @@ mods/
             └── patient/
                 ├── Patient.class
                 └── PatientService.class
+
+
 Step B: compile health.medication
 
-This module depends on health.patient, so at compile time Java must know where to find that module.
+// This module depends on health.patient, so at compile time Java must know where to find that module.
 
 javac -p mods -d mods/health.medication \
     health.medication/module-info.java \
-    health.medication/com/health/medication/*.java
-Meaning
--p mods
+    health.medication/com/health/medication/*.java .............*/
 
-Use mods as the module path
+    
+// Meaning
+// -p mods
+// Use mods as the module path
+// Java checks there for required modules
+// Since health.medication says: requires health.patient;
+// Java looks in:mods/health.patient
+// Finds it, reads its descriptor, and sees it is valid
+// Then Java compiles health.medication
 
-Java checks there for required modules.
 
-Since health.medication says:
-
-requires health.patient;
-
-Java looks in:
-
-mods/health.patient
 Output after compiling health.medication
 mods/
 ├── health.patient/
@@ -266,13 +280,17 @@ mods/
             └── medication/
                 ├── MedicationService.class
                 └── PrescriptionPrinter.class
+
+
 Step C: compile health.app
 
-This module depends on both other modules.
+// This module depends on both other modules.
 
 javac -p mods -d mods/health.app \
     health.app/module-info.java \
     health.app/com/health/app/Main.java
+
+
 Output after compiling health.app
 mods/
 ├── health.patient/
@@ -289,9 +307,11 @@ mods/
         └── health/
             └── app/
                 └── Main.class
-6. Compile order matters
 
-This is very important.
+
+
+6. Compile order matters
+// This is very important.
 
 Because:
 
@@ -307,16 +327,10 @@ health.app
 7. Runtime: run the application
 
 After compiling, run the main module:
-
 java -p mods -m health.app/com.health.app.Main
 Meaning
-java
-
-Start the JVM
-
--p mods
-
-Tell Java where the compiled modules live
+java Start the JVM
+-p mods Tell Java where the compiled modules live
 
 -m health.app/com.health.app.Main
 
@@ -324,25 +338,18 @@ Run:
 
 module: health.app
 main class: com.health.app.Main
+
+
 8. What happens at runtime internally
-
-When you run:
-
-java -p mods -m health.app/com.health.app.Main
+When you run: java -p mods -m health.app/com.health.app.Main
 
 Java does this:
 
-Step 1
+Step 1: Looks in mods for modules
 
-Looks in mods for modules
+Step 2: Finds module health.app
 
-Step 2
-
-Finds module health.app
-
-Step 3
-
-Reads its module-info.class
+Step 3: Reads its module-info.class
 
 module health.app {
     requires health.patient;
@@ -351,7 +358,6 @@ module health.app {
 Step 4
 
 Resolves dependencies:
-
 health.patient
 health.medication
 Step 5
@@ -363,12 +369,9 @@ module health.medication {
     exports com.health.medication;
 }
 Step 6
-
 Ensures required modules are present and accessible
 
-Step 7
-
-Finds com.health.app.Main
+Step 7: Finds com.health.app.Main
 
 Step 8
 
@@ -399,8 +402,9 @@ That would fail.
 
 So:
 
-requires = I need another module
-exports = I allow others to use this package
+// requires = I need another module
+// exports = I allow others to use this package
+
 11. Real compile-and-run flow in one place
 Source folders
 health.patient/
@@ -409,15 +413,16 @@ health.app/
 Compile commands
 javac -d mods/health.patient \
     health.patient/module-info.java \
-    health.patient/com/health/patient/*.java
+    health.patient/com/health/patient/*.java ..............*/
 
 javac -p mods -d mods/health.medication \
     health.medication/module-info.java \
-    health.medication/com/health/medication/*.java
+    health.medication/com/health/medication/*.java.  .............*/
 
 javac -p mods -d mods/health.app \
     health.app/module-info.java \
     health.app/com/health/app/Main.java
+
 Run command
 java -p mods -m health.app/com.health.app.Main
 12. What problem this solves compared to classpath
@@ -437,17 +442,13 @@ dependencies are explicit
 access is controlled
 package visibility is cleaner
 Java checks more at compile time and startup time
+
+
 13. Real-life mental model
 
-Think of it like this:
+Think of it like this: Without modules, A hospital where every department can walk into every room.
 
-Without modules
-
-A hospital where every department can walk into every room.
-
-With modules
-
-A hospital where each department has:
+With modules A hospital where each department has:
 
 a name
 approved doors
@@ -456,30 +457,7 @@ restricted internal rooms
 
 That is exactly what JPMS is doing.
 
-14. Important exam meanings of the command parts
-javac
 
-compile source code
-
--d
-
-destination of compiled .class files
-
--p
-
-module path used during compilation or runtime
-
-java
-
-run program
-
--m
-
-run a specific module and its main class
-
-module-info.java
-
-the descriptor that defines module rules
 
 15. One complete picture
 WRITE SOURCE CODE
