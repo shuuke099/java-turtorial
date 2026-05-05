@@ -51,7 +51,7 @@ public class HospitalSecuritySequencedSystem {
 
         SequencedCollection<SecurityEvent> seqList =
                 new ArrayList<>();
-
+        seqList.add(new SecurityEvent(1,"Adan","ER",EventType.PANIC_ALARM,"ER",10,false,LocalDateTime.now())); // ✅ OK
         seqList.addLast(new SecurityEvent(1,"Adan","ER",EventType.PANIC_ALARM,"ER",10,false,LocalDateTime.now()));
         seqList.addLast(new SecurityEvent(2,"Sara","ICU",EventType.BADGE_SCAN,"Gate",2,true,LocalDateTime.now()));
 
@@ -60,6 +60,9 @@ public class HospitalSecuritySequencedSystem {
 
         // Order:
         // [URGENT, Adan, Sara]
+        SequencedCollection<SecurityEvent> reversed = seqList.reversed();
+        // Output:
+        // [Sara, Adan, URGENT]
 
         SecurityEvent first = seqList.getFirst();
         // Output: URGENT

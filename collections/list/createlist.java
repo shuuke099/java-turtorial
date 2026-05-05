@@ -11,11 +11,12 @@ Product configuration (fixed data)
 Incoming order requests
 Internal processing lists
 🧩 1. CONFIGURATION DATA (IMMUTABLE — List.of())
-🎯 Use Case: Supported currencies / categories
+// 🎯 Use Case: Supported currencies / categories
 List<String> supportedCategories = List.of("Electronics", "Books", "Clothing");
+
 ✔ Why List.of()?
-Data should NEVER change
-Safe for global config
+// Data should NEVER change
+// Safe for global config
 ⚠️ If someone tries:
 supportedCategories.add("Toys"); // ❌ Runtime Exception
 
@@ -26,35 +27,29 @@ supportedCategories.add("Toys"); // ❌ Runtime Exception
 String[] incomingProducts = {"Laptop", "Mouse", "Keyboard"};
 List<String> productList = Arrays.asList(incomingProducts);
 ⚠️ CRITICAL REAL BUG
-🔴 Change array:
-incomingProducts[0] = "MacBook";
+🔴 Change array: incomingProducts[0] = "MacBook";
 System.out.println(productList); // [MacBook, Mouse, Keyboard]
 🔴 Change list:
 productList.set(1, "Trackpad");
 System.out.println(incomingProducts[1]); // Trackpad
 
-👉 This is dangerous because:
-
-Data is shared (same memory)
-❌ Also:
-productList.add("Monitor"); // ❌ Exception
-
+👉 This is dangerous because:Data is shared (same memory)
+❌ Also: productList.add("Monitor"); // ❌ Exception
 ✔ Fixed size list
 
 🧱 3. SAFE COPY → List.copyOf()
 🎯 Use Case: Protect system from external changes
 List<String> safeProducts = List.copyOf(productList);
 ✔ Benefits:
-Fully immutable
-NOT linked to original array
-🔥 Now:
-incomingProducts[0] = "Changed";
+Fully immutable , NOT linked to original array
+🔥 Now: incomingProducts[0] = "Changed";
 
 System.out.println(productList); // changed
 System.out.println(safeProducts); // NOT changed ✅
+
 🏗️ 4. INTERNAL PROCESSING → MUTABLE LISTS (CONSTRUCTORS)
 🎯 Use Case: System needs to modify data
-🔹 LinkedList (processing queue / flexible operations)
+// 🔹 LinkedList (processing queue / flexible operations)
 LinkedList<String> processingQueue = new LinkedList<>(safeProducts);
 
 ✔ Copy created

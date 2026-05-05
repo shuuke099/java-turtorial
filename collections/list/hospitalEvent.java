@@ -156,7 +156,11 @@ public class HospitalSecuritySystem {
                 ));
             }
         }
-        // WHY: modify during iteration safely
+         while (lit.hasPrevious()) {
+            System.out.print(lit.previous() + " ");
+        }
+        // WHY: complex processing with safe modifications  
+     // WHY: modify during iteration safely
 
         // equals() → compare lists
         List<SecurityEvent> copy = new ArrayList<>(list);
