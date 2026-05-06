@@ -346,6 +346,7 @@ averagingInt(...)
 ✔ FIX
 
 .collect(Collectors.averagingInt(s -> s.length()))
+
 ❓ Question 5 (Grouping Type Trap)
 var result = Stream.of(
     new Officer("A", 10, "ER"),
@@ -372,12 +373,13 @@ Map<String, Double>
 
 👉 NOT Integer
 
-✔ FIX (if integer needed — manual)
-
+// ✔ FIX (if integer needed — manual)
 .collect(Collectors.groupingBy(
     Officer::dept,
     Collectors.summingInt(Officer::reportsHandled)
 ));
+
+
 ❓ Question 6 (Integer Division Trap)
 double avg = List.of(1, 2)
     .stream()
@@ -1293,10 +1295,9 @@ D. Compilation error
 // 👉 groupingBy allows duplicates → collects into list
 
 ✔ FIX (if single value needed)
+Use:Collectors.toMap(...)
 
-Use:
 
-Collectors.toMap(...)
 ❓ Question 8 (toMap vs groupingBy Trap)
 var result = Stream.of("a", "a")
     .collect(Collectors.toMap(
@@ -1322,6 +1323,8 @@ Collectors.toMap(
     s -> s,
     (v1, v2) -> v1
 )
+
+
 ❓ Question 9 (Nested Collector Trap — HARD)
 var result = Stream.of("a", "bb", "ccc")
     .collect(Collectors.groupingBy(
@@ -1455,8 +1458,10 @@ D. Compilation error
 👉 Default downstream = toList()
 
 ✔ FIX
-
 partitioningBy(predicate, downstream)
+
+
+
 ❓ Question 2 (ALWAYS TWO KEYS — VERY IMPORTANT)
 var result = Stream.of("a")
     .collect(Collectors.partitioningBy(s -> s.length() > 5));
@@ -1473,15 +1478,12 @@ D. Runtime exception
 
 💥 WHY
 👉 partitioning ALWAYS creates:
-
-true and false
-
-Even if empty
+true and false Even if empty
 
 ✔ FIX
 No fix — expected behavior
 
-❓ Question 3 (Downstream Trap)
+// ❓ Question 3 (Downstream Trap)
 var result = Stream.of("a", "bb", "ccc")
     .collect(Collectors.partitioningBy(
         s -> s.length() > 1,
@@ -1500,13 +1502,13 @@ D. Runtime exception
 
 💥 WHY
 👉 downstream = counting()
-
 👉 changes value type to Long
 
 ✔ FIX
 Know return type:
-
 Map<Boolean, Long>
+
+
 ❓ Question 4 (Difference with groupingBy — BIG TRAP)
 var result = Stream.of("a", "bb", "ccc")
     .collect(Collectors.groupingBy(s -> s.length() > 1));
@@ -1545,9 +1547,9 @@ D. No change
 👉 Default downstream = toList() → mutable
 
 ✔ FIX (if immutability needed)
-
 Collectors.toUnmodifiableList()
-❓ Question 6 (Null Predicate Trap)
+
+// ❓ Question 6 (Null Predicate Trap)
 var result = Stream.of("a", null)
     .collect(Collectors.partitioningBy(s -> s.length() > 1));
 What happens?
@@ -1560,15 +1562,13 @@ D. {false=[a,null]}
 ✅ Answer: B — Runtime exception
 
 💥 WHY
-
-s.length()
-
-👉 null → NullPointerException
+s.length() 👉 null → NullPointerException
 
 ✔ FIX
-
 s -> s != null && s.length() > 1
-❓ Question 7 (Type Trap — VERY TRICKY)
+
+
+// ❓ Question 7 (Type Trap — VERY TRICKY)
 var result = Stream.of(1,2,3)
     .collect(Collectors.partitioningBy(
         x -> x > 1,
@@ -1587,9 +1587,9 @@ D. Compilation error
 👉 downstream controls value type
 
 ✔ FIX
-Know:
+// Know:averagingInt → Double
 
-averagingInt → Double
+
 ❓ Question 8 (Parallel Trap)
 var result = Stream.of("a","bb","ccc")
     .parallel()
@@ -1603,8 +1603,7 @@ D. Runtime exception
 
 ✅ Answer: B — Thread-safe result
 
-💥 WHY
-👉 partitioningBy is safe for parallel streams
+💥 WHY 👉 partitioningBy is safe for parallel streams
 
 ✔ FIX
 No fix needed
@@ -1630,7 +1629,6 @@ D. Runtime exception
 ✅ Answer: A
 
 💥 WHY
-
 mapping → uppercase
 joining → String
 
@@ -1682,3 +1680,563 @@ default value = List<T>
 🧠 FINAL MEMORY LINE
 
 partitioningBy = boolean grouping with guaranteed 2 buckets
+
+
+// ===========================================
+teeing() — Two collectors at once
+// ===========================================
+
+
+CORE (LOCK THIS FIRST)
+Collectors.teeing(
+    downstream1,
+    downstream2,
+    merger
+)
+
+👉 Runs TWO collectors in parallel
+👉 Then merges their results
+
+❓ Question 1 (Basic Type Trap)
+var result = Stream.of(1,2,3)
+    .collect(Collectors.teeing(
+        Collectors.summingInt(x -> x),
+        Collectors.counting(),
+        (sum, count) -> sum / count
+    ));
+
+System.out.println(result);
+
+
+// What happens?
+A. 2
+B. 2.0
+C. Compilation error
+D. Runtime exception
+
+✅ Answer: A — 2
+
+💥 WHY
+
+sum → int (6)
+count → Long (3L)
+sum / count → int / long → long → truncated → 2
+
+👉 integer division behavior
+
+✔ FIX\
+(sum, count) -> sum / (double) count
+
+
+// ❓ Question 2 (Return Type Trap)
+double result = Stream.of(1,2,3)
+    .collect(Collectors.teeing(
+        Collectors.summingInt(x -> x),
+        Collectors.counting(),
+        (a, b) -> a + b
+    ));
+What happens?
+
+A. 9.0
+B. 6.0
+C. Compilation error
+D. Runtime exception
+
+✅ Answer: C — Compilation error
+
+💥 WHY
+
+(a, b) -> a + b
+
+👉 int + Long → long
+
+👉 result = long, not double
+
+✔ FIX
+// (double) (a + b)
+
+
+// ❓ Question 3 (Empty Stream Trap)
+var result = Stream.<Integer>empty()
+    .collect(Collectors.teeing(
+        Collectors.summingInt(x -> x),
+        Collectors.counting(),
+        (sum, count) -> sum + ":" + count
+    ));
+
+System.out.println(result);
+What happens?
+
+A. "0:0"
+B. Runtime exception
+C. null
+D. Compilation error
+
+✅ Answer: A — "0:0"
+
+💥 WHY
+
+sum → 0
+count → 0
+
+👉 downstream collectors handle empty safely
+
+✔ FIX
+No fix — correct behavior
+
+❓ Question 4 (Type Mismatch Trap)
+var result = Stream.of("a","bb")
+    .collect(Collectors.teeing(
+        Collectors.counting(),
+        Collectors.joining(","),
+        (a, b) -> a + b
+    ));
+What happens?
+
+A. "2a,bb"
+B. Compilation error
+C. Runtime exception
+D. "2,a,bb"
+
+✅ Answer: A — "2a,bb"
+
+💥 WHY
+
+a = Long → 2
+b = String → "a,bb"
+
+👉 "2" + "a,bb"
+
+✔ FIX
+Explicit formatting:
+
+(a, b) -> a + "," + b
+
+
+❓ Question 5 (Collector Type Trap)
+var result = Stream.of(1,2,3)
+    .collect(Collectors.teeing(
+        Collectors.toList(),
+        Collectors.counting(),
+        (a, b) -> a.get(0) + b
+    ));
+What happens?
+
+A. 4
+B. 3
+C. Compilation error
+D. Runtime exception
+
+✅ Answer: A — 4
+
+💥 WHY
+
+list → [1,2,3] → first = 1
+count → 3
+
+👉 1 + 3 = 4
+
+✔ FIX
+No fix — valid
+
+❓ Question 6 (Mutability Trap)
+var result = Stream.of("a","b")
+    .collect(Collectors.teeing(
+        Collectors.toList(),
+        Collectors.toList(),
+        (l1, l2) -> {
+            l1.addAll(l2);
+            return l1;
+        }
+    ));
+What happens?
+
+A. [a,b,a,b]
+B. Runtime exception
+C. Compilation error
+D. [a,b]
+
+✅ Answer: A — [a,b,a,b]
+
+💥 WHY
+👉 both lists are mutable
+
+✔ FIX (if immutability needed)
+
+Collectors.toUnmodifiableList()
+❓ Question 7 (Immutable Trap)
+var result = Stream.of("a","b")
+    .collect(Collectors.teeing(
+        Collectors.toUnmodifiableList(),
+        Collectors.toList(),
+        (l1, l2) -> {
+            l1.addAll(l2);
+            return l1;
+        }
+    ));
+What happens?
+
+A. [a,b,a,b]
+B. Runtime exception
+C. Compilation error
+D. [a,b]
+
+✅ Answer: B — Runtime exception
+
+💥 WHY
+👉 l1 is unmodifiable
+
+✔ FIX
+Use mutable collector
+
+❓ Question 8 (Parallel Trap)
+var result = Stream.of("a","bb","ccc")
+    .parallel()
+    .collect(Collectors.teeing(
+        Collectors.joining(),
+        Collectors.counting(),
+        (s, c) -> s + ":" + c
+    ));
+What happens?
+
+A. "abbccc:3"
+B. Order unpredictable
+C. Runtime exception
+D. Compilation error
+
+✅ Answer: B — order unpredictable
+
+💥 WHY
+👉 parallel stream + joining → order not guaranteed
+
+✔ FIX
+Use .sequential()
+
+❓ Question 9 (Nested Collector Trap — HARD)
+var result = Stream.of("a","bb","ccc")
+    .collect(Collectors.teeing(
+        Collectors.mapping(String::length, Collectors.toList()),
+        Collectors.counting(),
+        (list, count) -> list.size() == count
+    ));
+What happens?
+
+A. true
+B. false
+C. Compilation error
+D. Runtime exception
+
+✅ Answer: A — true
+
+💥 WHY
+
+list size = 3
+count = 3
+
+✔ FIX
+No fix — valid
+
+❓ Question 10 (Final Boss — VERY HARD)
+var result = Stream.of("a","bb","ccc","dddd")
+    .collect(Collectors.teeing(
+        Collectors.filtering(s -> s.length() % 2 == 0, Collectors.counting()),
+        Collectors.filtering(s -> s.length() % 2 != 0, Collectors.counting()),
+        (even, odd) -> even + ":" + odd
+    ));
+
+System.out.println(result);
+What happens?
+
+A. "2:2"
+B. "3:1"
+C. Compilation error
+D. Runtime exception
+
+✅ Answer: A — "2:2"
+
+💥 WHY
+Even: bb, dddd → 2
+Odd: a, ccc → 2
+
+✔ FIX
+No fix — correct
+
+🧠 FINAL MASTER RULES (TEEING)
+🔥 teeing ALWAYS:
+runs 2 collectors in parallel
+merger combines results
+result type = merger return type
+🔥 MOST TESTED TRAPS
+❗ mismatched types in merger
+❗ integer division
+❗ mutable vs immutable collectors
+❗ parallel stream order issues
+❗ downstream result types differ (Long, List, String, etc.)
+
+// ===========================================
+     Spliterator — Manual stream iteration
+// ===========================================
+
+ULTRA HARD TEST — Spliterator
+❓ Question 1 (tryAdvance + return order)
+Spliterator<String> sp =
+    List.of("A", "B").spliterator();
+
+System.out.print(sp.tryAdvance(System.out::print));
+System.out.print(sp.tryAdvance(System.out::print));
+System.out.print(sp.tryAdvance(System.out::print));
+What is output?
+
+A. ABtruefalse
+B. AtrueBtruefalse
+C. trueAtrueBfalse
+D. AtrueBfalse
+
+✅ Answer: B — AtrueBtruefalse
+
+💥 WHY
+
+A printed, then true
+B printed, then true
+no element → false
+
+✔ FIX
+Remember: consumer runs BEFORE boolean prints
+
+❓ Question 2 (forEachRemaining after partial consumption)
+Spliterator<String> sp =
+    List.of("A", "B", "C").spliterator();
+
+sp.tryAdvance(System.out::print);
+sp.forEachRemaining(System.out::print);
+Output?
+
+A. ABC
+B. BC
+C. A
+D. Compilation error
+
+✅ Answer: A — ABC
+
+💥 WHY
+
+first → A
+remaining → B, C
+
+✔ FIX
+Understand partial consumption
+
+❓ Question 3 (trySplit basic)
+Spliterator<String> sp =
+    List.of("A", "B", "C", "D").spliterator();
+
+Spliterator<String> s2 = sp.trySplit();
+
+s2.forEachRemaining(System.out::print);
+sp.forEachRemaining(System.out::print);
+Output?
+
+A. ABCD
+B. CDAB
+C. ABDC
+D. Not guaranteed
+
+✅ Answer: A — ABCD (typical List behavior)
+
+💥 WHY
+Split:
+
+| s2 | A, B |
+| sp | C, D |
+
+✔ FIX
+Know List splits roughly in half
+
+❓ Question 4 (Order trap)
+Spliterator<String> sp =
+    List.of("A", "B", "C", "D").spliterator();
+
+Spliterator<String> s2 = sp.trySplit();
+
+sp.forEachRemaining(System.out::print);
+s2.forEachRemaining(System.out::print);
+Output?
+
+A. ABCD
+B. CDAB
+C. ABDC
+D. Not guaranteed
+
+✅ Answer: B — CDAB
+
+💥 WHY
+You printed sp first (C,D), then s2 (A,B)
+
+✔ FIX
+Execution order = output order
+
+❓ Question 5 (trySplit null trap)
+Spliterator<String> sp =
+    List.of("A").spliterator();
+
+Spliterator<String> s2 = sp.trySplit();
+
+System.out.println(s2 == null);
+Output?
+
+A. true
+B. false
+C. Compilation error
+D. Runtime exception
+
+✅ Answer: A — true
+
+💥 WHY
+Cannot split single element → returns null
+
+✔ FIX
+Always check:
+
+if (s2 != null)
+❓ Question 6 (tryAdvance loop)
+Spliterator<String> sp =
+    List.of("A", "B", "C").spliterator();
+
+while (sp.tryAdvance(System.out::print)) {}
+Output?
+
+A. ABC
+B. true true true
+C. Compilation error
+D. nothing
+
+✅ Answer: A — ABC
+
+💥 WHY
+Loop runs until false
+
+✔ FIX
+This is manual iteration pattern
+
+❓ Question 7 (estimateSize trap)
+Spliterator<String> sp =
+    List.of("A", "B", "C").spliterator();
+
+System.out.print(sp.estimateSize());
+sp.tryAdvance(System.out::print);
+System.out.print(sp.estimateSize());
+Output?
+
+A. 3A2
+B. 3A3
+C. 2A2
+D. 3A1
+
+✅ Answer: A — 3A2
+
+💥 WHY
+
+initially → 3
+after consuming A → 2
+
+✔ FIX
+estimateSize() changes as elements are consumed
+
+❓ Question 8 (characteristics trap)
+Spliterator<String> sp =
+    List.of("A", "B").spliterator();
+
+System.out.println(sp.hasCharacteristics(Spliterator.ORDERED));
+Output?
+
+A. true
+B. false
+C. Compilation error
+D. Runtime exception
+
+✅ Answer: A — true
+
+💥 WHY
+List → ordered collection
+
+✔ FIX
+Know common characteristics:
+
+ORDERED
+SIZED
+SUBSIZED
+❓ Question 9 (mixed consumption)
+Spliterator<String> sp =
+    List.of("A", "B", "C").spliterator();
+
+sp.tryAdvance(System.out::print);
+sp.tryAdvance(System.out::print);
+sp.forEachRemaining(System.out::print);
+Output?
+
+A. ABC
+B. AB
+C. BC
+D. AC
+
+✅ Answer: A — ABC
+
+💥 WHY
+tryAdvance → A
+tryAdvance → B
+remaining → C
+
+✔ FIX
+Elements are consumed once
+
+❓ Question 10 (FINAL BOSS — VERY HARD)
+Spliterator<String> sp =
+    List.of("A", "B", "C", "D").spliterator();
+
+Spliterator<String> s2 = sp.trySplit();
+
+s2.tryAdvance(System.out::print);
+sp.tryAdvance(System.out::print);
+s2.forEachRemaining(System.out::print);
+sp.forEachRemaining(System.out::print);
+Output?
+
+A. ABCD
+B. ACBD
+C. ABDC
+D. ACB D
+
+✅ Answer: B — ACBD
+
+💥 WHY
+
+Split:
+
+| s2 | A, B |
+| sp | C, D |
+
+Execution:
+
+s2.tryAdvance → A
+sp.tryAdvance → C
+s2.forEachRemaining → B
+sp.forEachRemaining → D
+
+👉 ACBD
+
+✔ FIX
+Track each spliterator independently
+
+🧠 FINAL MASTER RULES (EXAM GOLD)
+🔥 MUST KNOW
+tryAdvance() → ONE element
+forEachRemaining() → ALL remaining
+trySplit() → splits data
+may return null
+order depends on execution sequence
+elements are consumed once only
+estimateSize() decreases
+parallel → unpredictable ordering
+🧠 FINAL MEMORY LINE
+
+Spliterator = manual, controllable stream traversal

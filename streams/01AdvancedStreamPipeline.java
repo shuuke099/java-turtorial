@@ -571,6 +571,19 @@ PassengerFormats formats =
                   PassengerFormats::new
               ));
 
+// PassengerFormats formats =
+//     passengers.stream()
+//               .map(Passenger::name)
+//               .collect(Collectors.teeing(
+
+//                   Collectors.joining(" "),
+
+//                   Collectors.joining(","),
+
+//                   (a, b) -> new PassengerFormats(a, b)
+//               ));
+
+
 System.out.println(formats); // PassengerFormats{spaceSeparated='Ali Sara Noor', commaSeparated='Ali,Sara,Noor'}
 
 Business meaning
@@ -598,37 +611,87 @@ Spliterator<String> bag =
 
 Spliterator<String> split = bag.trySplit();
 
-split.forEachRemaining(System.out::print);
-bag.forEachRemaining(System.out::print);
+split.forEachRemaining(System.out::print);//bag-1 
+bag.forEachRemaining(System.out::print);//bag-2 bag-3
 What happens?
 // original spliterator is split into two parts
 // split processes one part
-// bag processes the remaining part
+// bag processes the remaining part.
+
+
+// trySplit() divides elements →
+// split = first portion
+// bag = remaining portion
+// printing order = execution order
 
 Business meaning
 // Split a baggage workload into smaller pieces.
 
 tryAdvance()
+// This processes one element at a time.
+boolean tryAdvance(Consumer<? super T> action)
 
-This processes one element at a time.
+// Meaning
+Processes ONE element at a time
+Returns:
 
-Spliterator<Integer> sp =
-    Stream.iterate(1, n -> ++n).spliterator();
+true → if element existed
+false → if no more elements
+
+
+// 🧪 BASIC EXAMPLE (must understand)
+Spliterator<String> sp =
+    List.of("A", "B", "C").spliterator();
+
+sp.tryAdvance(System.out::print); // A
+sp.tryAdvance(System.out::print); // B
+sp.tryAdvance(System.out::print); // C
+sp.tryAdvance(System.out::print); // nothing
+🟢 Output
+ABC
+💥 WHY Each call processes ONE element only
+
+// ❗ IMPORTANT DIFFERENCE
+Method	Behavior
+tryAdvance()	one element
+forEachRemaining()	all remaining
+
+// 🧪 EXAM-STYLE TRICK
+Spliterator<String> sp =
+    List.of("A", "B", "C").spliterator();
+
+sp.tryAdvance(System.out::print); // A
+sp.forEachRemaining(System.out::print);// B, C
+🟢 Output
+ABC
+❓ HARD QUESTION (VERY COMMON)
+Spliterator<String> sp =
+    List.of("A", "B", "C").spliterator();
+
+System.out.print(sp.tryAdvance(System.out::print));
+System.out.print(sp.tryAdvance(System.out::print));
+System.out.print(sp.tryAdvance(System.out::print));
+System.out.print(sp.tryAdvance(System.out::print));
+🟢 Output
+AtrueBtrueCtruefalse
+
+
+
+Spliterator<Integer> sp = Stream.iterate(1, n -> ++n).spliterator();
 
 sp.tryAdvance(System.out::print); // 1
 sp.tryAdvance(System.out::print); // 2
 sp.tryAdvance(System.out::print); // 3
-Business meaning
 
-Manually process alert IDs step by step.
+
+Business meaning
+// Manually process alert IDs step by step.
 
 5.3 Never use forEachRemaining() on an infinite stream
 
 Your file gives a very important warning:
-
-Never call forEachRemaining() on an infinite stream.
-
-Because it will never finish.
+// Never call forEachRemaining() on an infinite stream.
+// Because it will never finish.
 
 Example:
 

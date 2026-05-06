@@ -24,14 +24,11 @@
 
 Why Primitive Streams Exist
 // Suppose the hospital stores incident severity values:
-
 Stream<Integer> severities = Stream.of(4, 8, 10, 7);
 
 // You can sum them like this:
-
 int total = Stream.of(4, 8, 10, 7)
                   .reduce(0, (a, b) -> a + b);
-
 int total = Stream.of(4, 8, 10, 7)
                   .mapToInt(x -> x)
                   .sum();
@@ -97,7 +94,10 @@ OptionalInt maxPatrols =
     IntStream.of(12, 15, 18, 10, 20).max();
 System.out.println(maxPatrols.getAsInt()); // 20. // “What was the busiest patrol unit today?”
 
+
+//=============================================
 // 6. Creating Primitive Streams
+// =============================================
 Your file shows several ways to create primitive streams: empty(), of(), generate(), iterate(), range(), and rangeClosed().
 
 // 6.1 empty()
@@ -264,9 +264,9 @@ flatSeverities.forEach(System.out::print); // 47810639
 Business meaning
 
 // Combine all departmental incident scores into one stream for central analytics.
-
+// ======================================================
 11. Primitive Optional Types
-
+//======================================================
 Your file explains that primitive streams use:
 
 OptionalInt
