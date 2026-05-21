@@ -10,7 +10,11 @@ The system handles:
 Product configuration (fixed data)
 Incoming order requests
 Internal processing lists
+
+//================================================
 🧩 1. CONFIGURATION DATA (IMMUTABLE — List.of())
+//================================================
+
 // 🎯 Use Case: Supported currencies / categories
 List<String> supportedCategories = List.of("Electronics", "Books", "Clothing");
 
@@ -22,8 +26,11 @@ supportedCategories.add("Toys"); // ❌ Runtime Exception
 
 👉 This protects your system
 
+
+//================================================
 🧠 2. FRONTEND DATA → ARRAY → Arrays.asList() (TRAP!)
-🎯 Use Case: External system sends array
+//================================================
+// 🎯 Use Case: External system sends array
 String[] incomingProducts = {"Laptop", "Mouse", "Keyboard"};
 List<String> productList = Arrays.asList(incomingProducts);
 ⚠️ CRITICAL REAL BUG
@@ -37,7 +44,10 @@ System.out.println(incomingProducts[1]); // Trackpad
 ❌ Also: productList.add("Monitor"); // ❌ Exception
 ✔ Fixed size list
 
+
+//================================================
 🧱 3. SAFE COPY → List.copyOf()
+//================================================
 🎯 Use Case: Protect system from external changes
 List<String> safeProducts = List.copyOf(productList);
 ✔ Benefits:
