@@ -54,6 +54,9 @@ Has storage → can go back
 // Java example:
 InputStream input1 = new FileInputStream("heart-data.txt");
 System.out.println(input1.markSupported()); // false
+input1.mark(100);// usually does not throw an exception. But it has no real effect, because FileInputStream does not support marking.
+
+input1.reset();// This will throw an IOException because there is no mark supported and no buffer to go back to.
 InputStream input2 =
     new BufferedInputStream(
         new FileInputStream("heart-data.txt")
@@ -89,7 +92,6 @@ public class Test {
     }
 }
 
-
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -112,6 +114,66 @@ public class ReaderExample {
         System.out.print((char) reader.read()); // N
     }
 }
+
+
+import java.io.*;
+
+public class MarkResetWorks {
+    public static void main(String[] args) throws IOException {
+        BufferedInputStream in = new BufferedInputStream(
+                new FileInputStream("data.txt"));
+
+        if (in.markSupported()) {
+            in.mark(5); // remember position before reading 'a'
+
+            System.out.println((char) in.read()); // a
+            System.out.println((char) in.read()); // b
+            System.out.println((char) in.read()); // c
+
+            in.reset(); // goes back to the marked position
+
+            System.out.println((char) in.read()); // a again
+        }
+
+        in.close();
+    }
+}
+
+Example 2: reset() may fail
+
+Here we mark with readLimit = 5, but we read 7 bytes.
+import java.io.*;
+
+public class MarkResetFails {
+    public static void main(String[] args) throws IOException {
+        BufferedInputStream in = new BufferedInputStream(
+                new FileInputStream("data.txt"));
+
+        if (in.markSupported()) {
+            in.mark(5); // remember position before reading 'a'
+
+            System.out.println((char) in.read()); // a
+            System.out.println((char) in.read()); // b
+            System.out.println((char) in.read()); // c
+            System.out.println((char) in.read()); // d
+            System.out.println((char) in.read()); // e
+            System.out.println((char) in.read()); // f
+            System.out.println((char) in.read()); // g
+
+            in.reset(); // may fail because more than 5 bytes were read
+
+            System.out.println((char) in.read()); // may not run
+        }
+
+        in.close();
+    }
+}
+
+long skipped = in.skip(5);//
+system.out.println("Skipped bytes: " + skipped);// This will skip 5 bytes and print how many bytes were actually skipped.
+
+long skipped = in.skip(10);//You requested 10, but the result might be:
+System.out.println(skipped);//4
 
 
 
@@ -175,17 +237,18 @@ Files.isWritable(Path.of("/hospital/patients/ahmed.txt"));
 Files.isExecutable(Path.of("/hospital/scripts/nightly-backup.sh"));
 asks:“Can we run the backup script?”
 
-Simple Comparison Table
-Method	Question	Hospital example
-Files.isHidden(path)	Is it hidden?	Hidden audit log
-Files.isReadable(path)	Can Java read it?	Read lab result
-Files.isWritable(path)	Can Java modify it?	Update patient record
-Files.isExecutable(path)	Can Java run it?	Run backup script
-Important OCP Memory Rule
-Hidden     = Can normal users easily see it?
-Readable   = Can Java open/read it?
-Writable   = Can Java change it?
-Executable = Can Java run it?
+
+
+Path path = Path.of("missing-file.txt");
+System.out.println(Files.isReadable(path));   // false
+System.out.println(Files.isWritable(path));   // false
+System.out.println(Files.isExecutable(path)); // false
+Files.isHidden(path) //this is different because it can throw an exception.
+try {
+    System.out.println(Files.isHidden(path));
+} catch (IOException e) {
+    System.out.println("Could not check hidden status.");
+}
 
 
 //========================================
@@ -215,11 +278,10 @@ The file content may contain:
     Type: regular file
 
 
-BasicFileAttributeView view =
-    Files.getFileAttributeView(path, BasicFileAttributeView.class);
 
 
-    // 2. Reading the attributes
+
+    // 1. Reading the attributes
 BasicFileAttributes attrs = view.readAttributes();
 // This means:“Read the current metadata information for this file.”
 
@@ -231,6 +293,10 @@ attrs.lastModifiedTime();
 //Converting the time to milliseconds
   attrs.lastModifiedTime().toMillis() // Because milliseconds are easy to calculate with.
 
+//2- modifying the attributes
+
+BasicFileAttributeView view =
+    Files.getFileAttributeView(path, BasicFileAttributeView.class);
 //   Creating a new file time
 FileTime newTime = FileTime.fromMillis(
     attrs.lastModifiedTime().toMillis() + 10_000);
@@ -331,6 +397,7 @@ Files.walk(Path.of("/hospital"))
 
 This starts at:/hospital and walks through all subdirectories and files.
 By default, the depth is very large: Integer.MAX_VALUE
+
 // So Java will keep walking as deep as possible unless you limit it. 
 Your notes mention that Files.walk() is lazy and has a default depth of Integer.MAX_VALUE
 
@@ -427,6 +494,56 @@ public class HospitalDirectorySize {
 
         System.out.println("Total hospital records size: " + totalSize + " bytes");
     }
+}
+
+
+//////
+// hospital/
+//  ├── patients/
+//  │    ├── patient-a.txt      100 bytes
+//  │    └── patient-b.txt      200 bytes
+//  ├── labs/
+//  │    └── blood-test.txt     300 bytes
+//  └── notes.txt               50 bytes
+
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.stream.Stream;
+
+public class DirectorySizeExample {
+    public static void main(String[] args) throws IOException {
+        Path directory = Path.of("hospital");
+
+        try (Stream<Path> paths = Files.walk(directory)) {
+            long totalSize = paths
+                    .filter(Files::isRegularFile)
+                    .mapToLong(path -> {
+                        try {
+                            return Files.size(path);
+                        } catch (IOException e) {
+                            return 0L;
+                        }
+                    })
+                    .sum();
+
+            System.out.println("Total directory size: " + totalSize + " bytes");//650 bytes
+        }
+    }
+}
+try (Stream<Path> paths = Files.walk(directory)) {
+    long totalSize = paths
+            .parallel()
+            .filter(Files::isRegularFile)
+            .mapToLong(path -> {
+                try {
+                    return Files.size(path);
+                } catch (IOException e) {
+                    return 0L;
+                }
+            })
+            .sum();
+
+    System.out.println(totalSize);
 }
 
 
@@ -667,6 +784,36 @@ Possible output:
 /hospital-system/src/Nurse.java
 // Maybe App.java is too small, so it is not printed.
 
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.stream.Stream;
+
+public class DirectorySizeExample {
+
+    private static long getSize(Path path) {
+        try {
+            return Files.size(path);
+        } catch (IOException e) {
+            return 0L;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        Path directory = Path.of("hospital");
+
+        try (Stream<Path> paths = Files.find(
+                directory,
+                Integer.MAX_VALUE,
+                (path, attrs) -> attrs.isRegularFile()
+        )) {
+            long totalSize = paths
+                    .mapToLong(DirectorySizeExample::getSize)
+                    .sum();
+
+            System.out.println("Total directory size: " + totalSize + " bytes"); // 650 bytes
+        }
+    }
+}
 Why Files.find() is useful
 
 // With Files.walk(), you usually do this:
@@ -764,7 +911,7 @@ Example output:
 
 // /hospital/patients.txt
 // /hospital/Nurse.java
-
+        }
 
 
 Stream Class Notes
