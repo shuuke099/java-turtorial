@@ -29,9 +29,7 @@ Because binary files are made of raw bytes.
 
 byte[] buffer = new byte[1024];
 
-This means:
-
-Read up to 1024 bytes at a time.
+This means:Read up to 1024 bytes at a time.
 
 Important rule: use lengthRead
 out.write(buffer, 0, lengthRead);
@@ -246,3 +244,246 @@ System.out.println(45);
 is internally converted to text like:
 
 "45"
+
+
+
+
+
+===========================
+
+
+
+void copyReader(Reader in, Writer out) throws IOException {
+    int batchSize = 1024;
+    char[] buffer = new char[batchSize];
+
+    int lengthRead;
+
+    while ((lengthRead = in.read(buffer, 0, batchSize)) > 0) {
+        out.write(buffer, 0, lengthRead);
+        out.flush();
+    }
+}
+Same idea
+
+Byte version:
+
+InputStream  → byte[]
+OutputStream → byte[]
+
+Char version:
+
+Reader → char[]
+Writer → char[]
+Example use
+try (
+        Reader reader = new FileReader("patient-notes.txt");
+        Writer writer = new FileWriter("backup-notes.txt")
+) {
+    copyReader(reader, writer);
+}
+Small note
+
+Usually, you do not need to call flush() inside every loop. Better performance:
+
+void copyReader(Reader in, Writer out) throws IOException {
+    int batchSize = 1024;
+    char[] buffer = new char[batchSize];
+
+    int lengthRead;
+
+    while ((lengthRead = in.read(buffer, 0, batchSize)) > 0) {
+        out.write(buffer, 0, lengthRead);
+    }
+
+    out.flush();
+}
+lengthRead = in.read(buffer, 0, batchSize)) > 0... in here some times i can reduce the redundant batchsize ... char[] buffer = new char[1024]; .. like this?
+
+Yes. You can remove the separate batchSize variable and use buffer.length.
+
+Better version:
+
+void copyReader(Reader in, Writer out) throws IOException {
+    char[] buffer = new char[1024];
+
+    int lengthRead;
+
+    while ((lengthRead = in.read(buffer, 0, buffer.length)) > 0) {
+        out.write(buffer, 0, lengthRead);
+    }
+
+    out.flush();
+}
+
+Even shorter:
+
+void copyReader(Reader in, Writer out) throws IOException {
+    char[] buffer = new char[1024];
+
+    int lengthRead;
+
+    while ((lengthRead = in.read(buffer)) > 0) {
+        out.write(buffer, 0, lengthRead);
+    }
+
+    out.flush();
+}
+Why this works
+
+This:
+
+in.read(buffer)
+
+means:
+
+in.read(buffer, 0, buffer.length)
+
+So yes, this is redundant:
+
+int batchSize = 1024;
+char[] buffer = new char[batchSize];
+
+in.read(buffer, 0, batchSize);
+
+You can simply write:
+
+char[] buffer = new char[1024];
+
+in.read(buffer);
+
+Best exam-friendly version:
+
+while ((lengthRead = in.read(buffer)) > 0) {
+    out.write(buffer, 0, lengthRead);
+}
+
+
+
+
+
+
+readAllBytes() version does not need try-with-resources
+import java.io.*;
+import java.nio.file.*;
+
+void copyBinaryFile(File src, File dest) throws IOException {
+    byte[] data = Files.readAllBytes(src.toPath());
+
+    Files.write(dest.toPath(), data);
+}
+
+Why?
+
+Because you are not opening the stream yourself.
+
+Java opens and closes the file internally.
+
+2. Buffered stream version does need try-with-resources
+import java.io.*;
+
+void copyBinaryFile(File src, File dest) throws IOException {
+    try (
+            var in = new BufferedInputStream(new FileInputStream(src));
+            var out = new BufferedOutputStream(new FileOutputStream(dest))
+    ) {
+        byte[] buffer = new byte[1024];
+
+        int lengthRead;
+
+        while ((lengthRead = in.read(buffer)) != -1) {
+            out.write(buffer, 0, lengthRead);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+. Read and write as String
+File: patient.txt
+Patient: Ali
+Room: ICU
+Status: Stable
+Code
+Path input = Path.of("patient.txt");
+Path output = Path.of("copy.txt");
+
+String s = Files.readString(input);
+
+System.out.println(s);
+
+Files.writeString(output, s);
+Console output
+Patient: Ali
+Room: ICU
+Status: Stable
+New file: copy.txt
+Patient: Ali
+Room: ICU
+Status: Stable
+2. Read and write as byte[]
+File: report.pdf
+
+Imagine the file is a real PDF.
+
+Code
+Path input = Path.of("report.pdf");
+Path output = Path.of("copy.pdf");
+
+byte[] b = Files.readAllBytes(input);
+
+System.out.println(b.length);
+
+Files.write(output, b);
+Console output
+
+Example:
+
+24580
+
+That means the PDF file has 24,580 bytes.
+
+New file
+copy.pdf
+
+The new file is a copied PDF. You normally do not print PDF bytes as text.
+
+3. Read and write as List<String>
+File: patients.txt
+Ali
+Fatima
+Hassan
+Code
+Path input = Path.of("patients.txt");
+Path output = Path.of("copy.txt");
+
+List<String> lines = Files.readAllLines(input);
+
+System.out.println(lines);
+
+Files.write(output, lines);
+Console output
+[Ali, Fatima, Hassan]
+New file: copy.txt
+Ali
+Fatima
+Hassan
+Remember
+readString()
+
+prints the file as normal text.
+
+readAllBytes()
+
+prints numbers/byte size, not readable file content.
+
+readAllLines()
+
+prints a Java List, like:
+
+[Ali, Fatima, Hassan]

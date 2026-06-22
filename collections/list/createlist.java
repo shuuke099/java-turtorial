@@ -98,10 +98,10 @@ list.set();    // ❌
 ❌ Arrays.asList() → fixed size
 list.add();    // ❌
 list.remove(); // ❌
-
 BUT:
-
 list.set(0, "X"); // ✅ allowed
+
+
 🧠 7. PROFESSIONAL RULES (VERY IMPORTANT)
 ✔ Use List.of() when:
 Config data

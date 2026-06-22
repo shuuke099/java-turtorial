@@ -15,7 +15,6 @@ public class Test {
 }
 
 What is the output?
-
 A.
 ahmed.txt
 hospital/patients
@@ -661,7 +660,6 @@ public class Test {
     public static void main(String[] args) {
         File f = new File("hospital/patients");
         File[] list = f.listFiles();
-
         System.out.println(list.length);
     }
 }
@@ -1294,7 +1292,6 @@ create one directory only.
 
 mkdirs() and createDirectories()
 create missing parent directories.
-
 File.renameTo()
 returns boolean.
 
